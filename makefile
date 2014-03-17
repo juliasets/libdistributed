@@ -7,14 +7,18 @@ INCLUDE := -Iboost/asio/include/ -Iboost/system/include/ \
     -Iboost/smart_ptr/include/ -Iboost/static_assert/include \
     -Iboost/mpl/include/ -Iboost/preprocessor/include/ \
     -Iboost/type_traits/include/ -Iboost/bind/include/ \
-    -Iboost/regex/include/
+    -Iboost/regex/include/ -Iboost/array/include/ -Iboost/detail/include/ \
+    -Iboost/functional/include/
 
-CC := g++ --std=c++11 $(INCLUDE)
+CC := g++ --std=c++11 -Wall -Wextra --pedantic $(INCLUDE) -c
 
 .PHONY: all
-all: libdistributed.hpp.gch
+all: libdistributed.o
 
-libdistributed.hpp.gch: libdistributed.hpp boost
+libdistributed.o: libdistributed.hpp.gch libdistributed.cpp
+	$(CC) libdistributed.cpp
+
+libdistributed.hpp.gch: libdistributed.hpp boost.hpp.gch
 	$(CC) libdistributed.hpp
 
 .PHONY: update
@@ -23,10 +27,14 @@ update: boost
 	cd boost/system && git pull
 	cd boost/config && git pull
 
+boost.hpp.gch: boost boost.hpp
+	$(CC) boost.hpp
+
 boost: boost/asio boost/system boost/config boost/assert boost/integer \
     boost/utility boost/iterator boost/exception boost/date_time \
     boost/smart_ptr boost/static_assert boost/mpl boost/preprocessor \
-    boost/type_traits boost/bind boost/regex
+    boost/type_traits boost/bind boost/regex boost/array boost/detail \
+    boost/functional
 
 boost/%:
 	rm -rf $@
