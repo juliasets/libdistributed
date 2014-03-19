@@ -26,6 +26,22 @@ update: boost
 	cd boost/asio && git pull
 	cd boost/system && git pull
 	cd boost/config && git pull
+	cd boost/assert && git pull
+	cd boost/integer && git pull
+	cd boost/utility && git pull
+	cd boost/iterator && git pull
+	cd boost/exception && git pull
+	cd boost/date_time && git pull
+	cd boost/smart_ptr && git pull
+	cd boost/static_assert && git pull
+	cd boost/mpl && git pull
+	cd boost/preprocessor && git pull
+	cd boost/type_traits && git pull
+	cd boost/bind && git pull
+	cd boost/regex && git pull
+	cd boost/array && git pull
+	cd boost/detail && git pull
+	cd boost/functional && git pull
 
 boost.hpp.gch: boost boost.hpp
 	$(CC) boost.hpp
