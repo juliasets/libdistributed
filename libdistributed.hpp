@@ -21,10 +21,12 @@ namespace _utility {
 
     uint64_t rand64 ();
 
-    struct Address {
+    struct Address
+    {
         std::string hostname;
         unsigned short port;
-        bool operator == (const Address & other) const {
+        bool operator == (const Address & other) const
+        {
             if (port != other.port) return false;
             if (hostname != other.hostname) return false;
             return true;
@@ -45,7 +47,8 @@ namespace std {
 
 namespace Distributed { namespace _utility { // Re-enter both namespaces.
 
-    struct NodeInfo {
+    struct NodeInfo
+    {
         uint64_t id;
         std::unordered_set<Address> addresses;
         std::vector<std::string> services;
@@ -57,13 +60,15 @@ namespace Distributed { namespace _utility { // Re-enter both namespaces.
 }
 
 
-struct Job {
+struct Job
+{
     std::string service;
     std::string message;
 };
 
 
-class Node {
+class Node
+{
 
     boost::asio::io_service io_service;
     boost::asio::ip::tcp::acceptor acceptor;
@@ -94,7 +99,7 @@ public:
         acceptor(io_service,
             boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
         maintainer(&Node::maintain_forever, this)
-        {
+    {
         mynodeinfo.id = _utility::rand64();
         mynodeinfo.last_pinged = 0;
         mynodeinfo.last_success = 0;
@@ -104,13 +109,15 @@ public:
         maintainer.detach();
     }
 
-    ~Node () {
+    ~Node ()
+    {
         maintaining = false;
         maintain_timer.unlock();
         maintainer.join();
     }
 
-    bool join_network (std::string hostname, unsigned short port) {
+    bool join_network (std::string hostname, unsigned short port)
+    {
         return ping(hostname, port);
     }
 

@@ -9,19 +9,23 @@
 using namespace Distributed::_utility;
 
 
-class Synchronize {
+class Synchronize
+{
     std::recursive_mutex &_mutex;
 public:
-    Synchronize (std::recursive_mutex & mutex) : _mutex(mutex) {
+    Synchronize (std::recursive_mutex & mutex) : _mutex(mutex)
+    {
         _mutex.lock();
     }
-    ~Synchronize () {
+    ~Synchronize ()
+    {
         _mutex.unlock();
     }
 };
 
 
-std::ostream& operator << (std::ostream & os, const NodeInfo & ni) {
+std::ostream & operator << (std::ostream & os, const NodeInfo & ni)
+{
     os << ni.id << std::endl;
     os << ni.addresses.size() << std::endl;
     for (const Address & a : ni.addresses)
@@ -36,11 +40,13 @@ std::ostream& operator << (std::ostream & os, const NodeInfo & ni) {
 }
 
 
-std::istream& operator >> (std::istream & is, NodeInfo & ni) {
+std::istream& operator >> (std::istream & is, NodeInfo & ni)
+{
     is >> ni.id;
     size_t count;
     is >> count;
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count; ++i)
+    {
         Address a;
         is >> a.hostname >> a.port;
         ni.addresses.insert(a);
@@ -56,13 +62,15 @@ std::istream& operator >> (std::istream & is, NodeInfo & ni) {
 }
 
 
-enum RequestType {
+enum RequestType
+{
     PING = 0,
     JOB = 1
 };
 
 
-uint64_t rand64 () {
+uint64_t rand64 ()
+{
     static std::random_device rd;
     static std::default_random_engine rng(rd());
     static std::uniform_int_distribution<uint64_t> dist;
@@ -76,8 +84,10 @@ using namespace boost;
 
 
 
-bool Node::ping (std::string hostname, unsigned short port) {
-    try {
+bool Node::ping (std::string hostname, unsigned short port)
+{
+    try
+    {
         asio::ip::tcp::iostream stream(hostname, std::to_string(port));
         if (!stream) return false;
         stream << PING << std::endl;
@@ -86,14 +96,16 @@ bool Node::ping (std::string hostname, unsigned short port) {
         size_t count;
         stream >> count;
         NodeInfo tempnode;
-        for (size_t i = 0; i < count; ++i) {
+        for (size_t i = 0; i < count; ++i)
+        {
             stream >> tempnode;
             // Ignore myself.
             if (tempnode.id == mynodeinfo.id) continue;
             // Ignore probably dead nodes.
             if (tempnode.last_pinged - tempnode.last_success > 10) continue;
             auto it = nodes_by_id.find(tempnode.id);
-            if (it != nodes_by_id.end()) { // I have already seen this node.
+            if (it != nodes_by_id.end())
+            { // I have already seen this node.
                 if (it->second.last_success > tempnode.last_success)
                     continue; // Ignore old information.
                 if (it->second.last_pinged > tempnode.last_pinged)
@@ -110,7 +122,9 @@ bool Node::ping (std::string hostname, unsigned short port) {
             for (const std::string & service : tempnode.services)
                 nodes_by_service[service][tempnode.id] = tempnode;
         }
-    } catch (std::exception& e) {
+    }
+    catch (std::exception& e)
+    {
         std::cerr << "Exception: " << e.what() << std::endl;
         throw e;
     }
@@ -118,7 +132,8 @@ bool Node::ping (std::string hostname, unsigned short port) {
 }
 
 
-void Node::pong (asio::ip::tcp::iostream & stream) {
+void Node::pong (asio::ip::tcp::iostream & stream)
+{
     // First, update information on myself.
     // Insert my address into list of address if it wasn't already there.
     Address a;
@@ -139,29 +154,37 @@ void Node::pong (asio::ip::tcp::iostream & stream) {
 }
 
 
-void Node::maintain_forever () {
+void Node::maintain_forever ()
+{
     for (; maintaining;
-        maintain_timer.try_lock_for(std::chrono::milliseconds(1000))) {
+        maintain_timer.try_lock_for(std::chrono::milliseconds(1000)))
+    {
         // TODO
     }
 }
 
 
-double Node::get_busyness () {
+double Node::get_busyness ()
+{
     return 0.5;
 }
 
 
-Job Node::accept () {
-    try {
-        for (;;) {
+Job Node::accept ()
+{
+    try
+    {
+        for (;;)
+        {
             system::error_code error;
             asio::ip::tcp::iostream stream;
             acceptor.accept(*stream.rdbuf(), error);
-            if (!error) {
+            if (!error)
+            {
                 unsigned request;
                 stream >> request;
-                if (request == PING) {
+                if (request == PING)
+                {
                     pong(stream);
                     continue;
                 }
@@ -175,22 +198,28 @@ Job Node::accept () {
                 return std::move(job);
             }
         }
-    } catch (std::exception& e) {
+    }
+    catch (std::exception& e)
+    {
         std::cerr << "Exception: " << e.what() << std::endl;
         throw e;
     }
 }
 
 
-bool Node::send (Job job) {
-    try {
+bool Node::send (Job job)
+{
+    try
+    {
         // TODO: ?
         // Send that we are sending a job.
         // Send name of service.
         // Send length of message.
         // Send message.
         // Listen for "accepted".
-    } catch (std::exception& e) {
+    }
+    catch (std::exception& e)
+    {
         std::cerr << "Exception: " << e.what() << std::endl;
         throw e;
     }
