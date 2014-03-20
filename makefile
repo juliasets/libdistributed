@@ -1,66 +1,33 @@
 SHELL := /bin/bash
 
-INCLUDE := -Iboost/asio/include/ -Iboost/system/include/ \
-    -Iboost/config/include/ -Iboost/assert/include/ -Iboost/integer/include/ \
-    -Iboost/utility/include/ -Iboost/iterator/include/ \
-    -Iboost/exception/include/ -Iboost/date_time/include/ \
-    -Iboost/smart_ptr/include/ -Iboost/static_assert/include \
-    -Iboost/mpl/include/ -Iboost/preprocessor/include/ \
-    -Iboost/type_traits/include/ -Iboost/bind/include/ \
-    -Iboost/regex/include/ -Iboost/array/include/ -Iboost/detail/include/ \
-    -Iboost/functional/include/
+CC := g++ --std=c++11 -Wall -Wextra --pedantic -c
 
-CC := g++ --std=c++11 -Wall -Wextra --pedantic $(INCLUDE) -c
+LD := g++ --std=c++11 -Wall -Wextra --pedantic
 
 .PHONY: all
 all: libdistributed.o
 
-libdistributed.o: libdistributed.hpp.gch libdistributed.cpp
+test: libdistributed.o test.o /usr/lib/libboost_system.a
+	$(LD) -o test test.o libdistributed.o -lboost_system -pthread
+
+test.o: test.cpp
+	$(CC) test.cpp
+
+libdistributed.o: libdistributed.hpp libdistributed.cpp \
+    /usr/include/boost/asio.hpp
 	$(CC) libdistributed.cpp
 
-libdistributed.hpp.gch: libdistributed.hpp boost.hpp.gch
-	$(CC) libdistributed.hpp
+# Yes, this is awful, but it will do for now.
+/usr/lib/libboost_system.a:
+	echo 'Please install libboost-system-dev.'
+	false
 
-.PHONY: update
-update: boost
-	cd boost/asio && git pull
-	cd boost/system && git pull
-	cd boost/config && git pull
-	cd boost/assert && git pull
-	cd boost/integer && git pull
-	cd boost/utility && git pull
-	cd boost/iterator && git pull
-	cd boost/exception && git pull
-	cd boost/date_time && git pull
-	cd boost/smart_ptr && git pull
-	cd boost/static_assert && git pull
-	cd boost/mpl && git pull
-	cd boost/preprocessor && git pull
-	cd boost/type_traits && git pull
-	cd boost/bind && git pull
-	cd boost/regex && git pull
-	cd boost/array && git pull
-	cd boost/detail && git pull
-	cd boost/functional && git pull
-
-boost.hpp.gch: boost boost.hpp
-	$(CC) boost.hpp
-
-boost: boost/asio boost/system boost/config boost/assert boost/integer \
-    boost/utility boost/iterator boost/exception boost/date_time \
-    boost/smart_ptr boost/static_assert boost/mpl boost/preprocessor \
-    boost/type_traits boost/bind boost/regex boost/array boost/detail \
-    boost/functional
-
-boost/%:
-	rm -rf $@
-	git clone https://github.com/boostorg/$(subst boost/,,$@).git $@
-
-.PHONY: cleanish
-cleanish:
-	rm -rf *~ *.gch *.o
+# Same goes for this one.
+/usr/include/boost/asio.hpp:
+	echo 'Please install libasio-dev.'
+	false
 
 .PHONY: clean
-clean: cleanish
-	rm -rf boost
+clean:
+	rm -rf *~ *.gch *.o
 

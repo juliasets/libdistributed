@@ -2,7 +2,7 @@
 #if !defined __libdistributed_hpp__
 #define __libdistributed_hpp__
 
-#include "boost.hpp"
+#include <boost/asio.hpp>
 
 #include <cstdint>
 #include <iostream>
