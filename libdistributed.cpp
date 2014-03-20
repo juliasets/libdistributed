@@ -88,7 +88,16 @@ bool Node::ping (std::string hostname, unsigned short port)
 
 
 /*
-    
+    Respond to ping. PING has already been received.
+    Read:
+        hostname port
+        insert hostname and port into list of addresses
+        update my own node information before sending it
+    Write:
+        number of total nodes (including myself)
+        send my node
+        for each other node I know about:
+            send node
 */
 void Node::pong (asio::ip::tcp::iostream & stream)
 {
