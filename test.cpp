@@ -4,6 +4,6 @@
 
 int main (int argc, char **argv)
 {
-    // TODO
+    Distributed::Node node(8888);
 }
 

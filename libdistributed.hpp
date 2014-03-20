@@ -39,8 +39,9 @@ class Node
 
     std::recursive_mutex data_lock;
 
-    std::thread maintainer;
+    bool get_random_node (_utility::NodeInfo & ni);
 
+    std::thread maintainer;
     bool maintaining = true;
     std::timed_mutex maintain_timer;
     void maintain_forever ();
@@ -57,21 +58,21 @@ public:
         io_service(),
         acceptor(io_service,
             boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-        maintainer(&Node::maintain_forever, this)
+        maintainer()
     {
         mynodeinfo.id = _utility::rand64();
         mynodeinfo.last_pinged = 0;
         mynodeinfo.last_success = 0;
         mynodeinfo.busyness = get_busyness();
 
-        maintain_timer.lock();
-        maintainer.detach();
+        maintainer = std::thread(&Node::maintain_forever, this);
+            // Start maintainer thread.
     }
 
     ~Node ()
     {
         maintaining = false;
-        maintain_timer.unlock();
+        maintain_timer.unlock(); // Cancel maintain timer early.
         maintainer.join();
     }
 

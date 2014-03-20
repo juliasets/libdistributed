@@ -19,6 +19,23 @@ enum RequestType
 };
 
 
+bool Node::get_random_node (NodeInfo & ni)
+{
+    SYNCHRONIZED (data_lock)
+    {
+        if (nodes_by_id.size() < 1) return false;
+        auto it = nodes_by_id.begin();
+        std::advance(it, prand64() % nodes_by_id.size());
+            // TODO: The above search is linear. Is there a better way
+            // to do this without making other actions linear?
+            // Perhaps a different data structure, or a combination of a few.
+        ni = it->second;
+        return true;
+    }
+    return false; // Unreachable.
+}
+
+
 /*
     Find host based on (hostname, port).
     Send:
@@ -55,7 +72,7 @@ bool Node::ping (std::string hostname, unsigned short port)
                 // Ignore myself.
                 if (tempnode.id == mynodeinfo.id) continue;
                 // Ignore probably dead nodes.
-                if (tempnode.last_pinged - tempnode.last_success > 10)
+                if (tempnode.probably_dead())
                     continue;
                 auto it = nodes_by_id.find(tempnode.id);
                 if (it != nodes_by_id.end())
@@ -122,19 +139,47 @@ void Node::pong (asio::ip::tcp::iostream & stream)
 }
 
 
+/*
+    Maintain the network forever.
+    Every second:
+        Select a node randomly to ping. Continue if no other nodes known.
+        For each address of node:
+            try to ping address, and if successful, record success
+        if never successful, update last_pinged info on node in my records
+        if node is probably dead, remove from my records
+*/
 void Node::maintain_forever ()
 {
     for (; maintaining;
         maintain_timer.try_lock_for(std::chrono::milliseconds(1000)))
     {
-        // TODO
+        NodeInfo ni;
+        if (!get_random_node(ni)) continue; // No other nodes known.
+        bool succeeded = false;
+        for (const Address a : ni.addresses)
+        {
+            succeeded = ping(a.hostname, a.port);
+            if (succeeded) break;
+        }
+        if (!succeeded)
+            ni.last_pinged = time(NULL);
+        if (ni.probably_dead())
+        {
+            SYNCHRONIZED (data_lock)
+            {
+                // Remove node from list of services.
+                for (const std::string & service : ni.services)
+                    nodes_by_service[service].erase(ni.id);
+                nodes_by_id.erase(ni.id);
+            }
+        }
     }
 }
 
 
 double Node::get_busyness ()
 {
-    return 0.5;
+    return 0.5; // TODO
 }
 
 

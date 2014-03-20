@@ -8,12 +8,19 @@ using namespace Distributed;
 using namespace Distributed::_utility;
 
 
-uint64_t rand64 ()
+uint64_t _utility::rand64 ()
 {
     static std::random_device rd;
-    static std::default_random_engine rng(rd());
     static std::uniform_int_distribution<uint64_t> dist;
     return dist(rd);
+}
+
+
+uint64_t _utility::prand64 ()
+{
+    static std::default_random_engine rng(rand64());
+    static std::uniform_int_distribution<uint64_t> dist;
+    return dist(rng);
 }
 
 

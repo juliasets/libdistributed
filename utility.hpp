@@ -17,6 +17,7 @@ namespace Distributed
     {
 
         uint64_t rand64 ();
+        uint64_t prand64 ();
 
         struct Address
         {
@@ -61,6 +62,9 @@ namespace Distributed
             uint64_t last_pinged;
             uint64_t last_success;
             double busyness;
+            bool probably_dead () {
+                return last_pinged - last_success > 10;
+            }
         };
 
         class Synchronize
