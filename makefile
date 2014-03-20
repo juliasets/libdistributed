@@ -13,7 +13,7 @@ test: libdistributed.o test.o /usr/lib/libboost_system.a
 test.o: test.cpp
 	$(CC) test.cpp
 
-libdistributed.o: libdistributed.hpp libdistributed.cpp \
+libdistributed.o: libdistributed.hpp libdistributed.cpp utility.hpp \
     /usr/include/boost/asio.hpp
 	$(CC) libdistributed.cpp
 

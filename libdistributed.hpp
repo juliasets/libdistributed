@@ -2,6 +2,8 @@
 #if !defined __libdistributed_hpp__
 #define __libdistributed_hpp__
 
+#include "utility.hpp"
+
 #include <boost/asio.hpp>
 
 #include <cstdint>
@@ -15,49 +17,6 @@
 #include <unordered_set>
 
 namespace Distributed {
-
-
-namespace _utility {
-
-    uint64_t rand64 ();
-
-    struct Address
-    {
-        std::string hostname;
-        unsigned short port;
-        bool operator == (const Address & other) const
-        {
-            if (port != other.port) return false;
-            if (hostname != other.hostname) return false;
-            return true;
-        }
-    };
-
-}} // Escape both namespaces.
-
-namespace std {
-    template <> struct hash<Distributed::_utility::Address>
-    {
-        size_t operator () (const Distributed::_utility::Address & a) const
-        {
-            return hash<string>()(a.hostname + ' ' + to_string(a.port));
-        }
-    };
-}
-
-namespace Distributed { namespace _utility { // Re-enter both namespaces.
-
-    struct NodeInfo
-    {
-        uint64_t id;
-        std::unordered_set<Address> addresses;
-        std::vector<std::string> services;
-        uint64_t last_pinged;
-        uint64_t last_success;
-        double busyness;
-    };
-
-}
 
 
 struct Job

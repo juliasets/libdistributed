@@ -6,60 +6,9 @@
 #include <ctime>
 #include <algorithm>
 
+using namespace Distributed;
 using namespace Distributed::_utility;
-
-
-class Synchronize
-{
-    std::recursive_mutex &_mutex;
-public:
-    Synchronize (std::recursive_mutex & mutex) : _mutex(mutex)
-    {
-        _mutex.lock();
-    }
-    ~Synchronize ()
-    {
-        _mutex.unlock();
-    }
-};
-
-
-std::ostream & operator << (std::ostream & os, const NodeInfo & ni)
-{
-    os << ni.id << std::endl;
-    os << ni.addresses.size() << std::endl;
-    for (const Address & a : ni.addresses)
-        os << a.hostname << ' ' << a.port << std::endl;
-    os << ni.services.size() << std::endl;
-    for (const std::string & s : ni.services)
-        os << s << std::endl;
-    os << ni.last_pinged << std::endl;
-    os << ni.last_success << std::endl;
-    os << ni.busyness << std::endl;
-    return os;
-}
-
-
-std::istream& operator >> (std::istream & is, NodeInfo & ni)
-{
-    is >> ni.id;
-    size_t count;
-    is >> count;
-    for (size_t i = 0; i < count; ++i)
-    {
-        Address a;
-        is >> a.hostname >> a.port;
-        ni.addresses.insert(a);
-    }
-    is >> count;
-    ni.services.resize(count);
-    for (size_t i = 0; i < count; ++i)
-        is >> ni.services[i];
-    is >> ni.last_pinged;
-    is >> ni.last_success;
-    is >> ni.busyness;
-    return is;
-}
+using namespace boost;
 
 
 enum RequestType
@@ -67,21 +16,6 @@ enum RequestType
     PING = 0,
     JOB = 1
 };
-
-
-uint64_t rand64 ()
-{
-    static std::random_device rd;
-    static std::default_random_engine rng(rd());
-    static std::uniform_int_distribution<uint64_t> dist;
-    return dist(rd);
-}
-
-
-
-using namespace Distributed;
-using namespace boost;
-
 
 
 bool Node::ping (std::string hostname, unsigned short port)
