@@ -147,6 +147,7 @@ void Node::pong (asio::ip::tcp::iostream & stream)
             try to ping address, and if successful, record success
         if never successful, update last_pinged info on node in my records
         if node is probably dead, remove from my records
+        TODO: Send my node information somewhere.
 */
 void Node::maintain_forever ()
 {
@@ -230,6 +231,7 @@ bool Node::send (Job job)
         // Send length of message.
         // Send message.
         // Listen for "accepted".
+        // Send my information to other node (return calls, etc).
     }
     catch (std::exception& e)
     {
