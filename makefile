@@ -13,11 +13,11 @@ test: libdistributed.o utility.o test.o /usr/lib/libboost_system.a
 test.o: test.cpp libdistributed.hpp
 	$(CC) test.cpp
 
-libdistributed.o: libdistributed.hpp libdistributed.cpp utility.hpp \
-    /usr/include/boost/asio.hpp
+libdistributed.o: libdistributed.hpp libdistributed.cpp \
+    utility.hpp utility_macros.hpp /usr/include/boost/asio.hpp
 	$(CC) libdistributed.cpp
 
-utility.o: utility.hpp utility.cpp
+utility.o: utility.hpp utility_macros.hpp utility.cpp
 	$(CC) utility.cpp
 
 # Yes, this is awful, but it will do for now.
