@@ -41,14 +41,19 @@ class Node
     std::recursive_mutex data_lock;
 
     bool get_random_node (_utility::NodeInfo & ni);
+    bool get_random_node (_utility::NodeInfo & ni,
+        const std::string & service);
 
     std::thread maintainer;
     std::timed_mutex maintain_timer;
     void maintain_forever ();
 
-    bool ping (std::string hostname, unsigned short port, uint64_t id);
+    bool ping (const std::string & hostname, unsigned short port,
+        uint64_t id);
     void pong (boost::asio::ip::tcp::iostream & stream);
-    bool publish (std::string hostname, unsigned short port);
+    bool publish (const std::string & hostname, unsigned short port);
+    bool test (const std::string & hostname, unsigned short port,
+        uint64_t id);
 
     double get_busyness ();
 
@@ -88,7 +93,8 @@ public:
     Job accept ();
     bool send (Job job);
 
-    void publish (std::string service);
+    void provide_service (const std::string & service);
+    void rescind_service (const std::string & service);
 
 };
 

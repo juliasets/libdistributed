@@ -16,7 +16,9 @@ enum RequestType
 {
     JOB = 0,
     PING = 1,
-    PUBLISH = 2
+    PUBLISH = 2,
+    WHO = 3,
+    ACCEPTED = 4
 };
 
 
@@ -30,6 +32,21 @@ bool Node::get_random_node (NodeInfo & ni)
             // TODO: The above search is linear. Is there a better way
             // to do this without making other actions linear?
             // Perhaps a different data structure, or a combination of a few.
+        ni = it->second;
+        return true;
+    }
+    return false; // Unreachable.
+}
+
+
+bool Node::get_random_node (NodeInfo & ni, const std::string & service)
+{
+    SYNCHRONIZED (data_lock)
+    {
+        // TODO: Change algorithm here to weight probability by load!!!
+        if (nodes_by_service[service].size() < 1) return false;
+        auto it = nodes_by_service[service].begin();
+        std::advance(it, prand64() % nodes_by_service[service].size());
         ni = it->second;
         return true;
     }
@@ -54,7 +71,8 @@ bool Node::get_random_node (NodeInfo & ni)
             add node to records
     Returns: true if remote host responded as expected, false otherwise
 */
-bool Node::ping (std::string hostname, unsigned short port, uint64_t id)
+bool Node::ping (const std::string & hostname, unsigned short port,
+    uint64_t id)
 {
     try
     {
@@ -150,7 +168,7 @@ void Node::pong (asio::ip::tcp::iostream & stream)
         PUBLISH
         my port
 */
-bool Node::publish (std::string hostname, unsigned short port)
+bool Node::publish (const std::string & hostname, unsigned short port)
 {
     try
     {
@@ -169,6 +187,29 @@ bool Node::publish (std::string hostname, unsigned short port)
 
 
 /*
+    Uses the WHO command to test if the remote host corresponds to id.
+*/
+bool Node::test (const std::string & hostname, unsigned short port,
+    uint64_t id)
+{
+    try
+    {
+        asio::ip::tcp::iostream stream(hostname, std::to_string(port));
+        if (!stream) return false;
+        stream << WHO << std::endl;
+        uint64_t remote_id;
+        stream >> remote_id;
+        return id == remote_id;
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+
+/*
     Maintain the network forever.
     Every second:
         Select a node randomly to ping. Continue if no other nodes known.
@@ -176,7 +217,6 @@ bool Node::publish (std::string hostname, unsigned short port)
             try to ping address, and if successful, record success
         if never successful, update last_pinged info on node in my records
         if node is probably dead, remove from my records
-        TODO: Send my node information somewhere.
 */
 void Node::maintain_forever ()
 {
@@ -195,7 +235,11 @@ void Node::maintain_forever ()
         for (const Address a : ni.addresses)
         {
             succeeded = ping(a.hostname, a.port, ni.id);
-            if (succeeded) break;
+            if (succeeded)
+            {
+                publish(a.hostname, a.port); // Tell remote to ping me.
+                break;
+            }
         }
         if (!succeeded)
             ni.last_pinged = time(NULL);
@@ -210,6 +254,7 @@ void Node::maintain_forever ()
             }
         }
     }
+    maintain_timer.unlock(); // Avoid undefined behavior.
 }
 
 
@@ -248,13 +293,20 @@ Job Node::accept ()
                     ping(remote_ep.address().to_string(), port, 0);
                     continue;
                 }
+                if (request == WHO)
+                {
+                    stream << mynodeinfo.id << std::endl;
+                    continue;
+                }
+                // Process a received job.
                 Job job;
                 stream >> job.service;
                 size_t length;
                 stream >> length;
+                stream.get(); // Eat one whitespace after length.
                 job.message.resize(length);
                 stream.read(&job.message[0], length);
-                stream << "accepted" << std::endl;
+                stream << ACCEPTED << std::endl;
                 return std::move(job);
             }
         }
@@ -267,24 +319,71 @@ Job Node::accept ()
 }
 
 
+void Node::provide_service (const std::string & service)
+{
+    SYNCHRONIZED (data_lock)
+    {
+        auto index = std::find(mynodeinfo.services.begin(),
+            mynodeinfo.services.end(), service);
+        if (index == mynodeinfo.services.end())
+        {
+            mynodeinfo.services.push_back(service);
+        }
+    }
+}
+
+
+void Node::rescind_service (const std::string & service)
+{
+    SYNCHRONIZED (data_lock)
+    {
+        std::remove(mynodeinfo.services.begin(),
+            mynodeinfo.services.end(), service);
+    }
+}
+
+
+/*
+    Sends a job to another node.
+        choose node randomly based on load factor; return false on failure
+        find correct address for node; return false on failure
+        publish to other node
+        send JOB
+        send name of service
+        send length of message
+        send message
+        listen for ACCEPTED; return true
+*/
 bool Node::send (Job job)
 {
     try
     {
-        // TODO: ?
-        // Send that we are sending a job.
-        // Send name of service.
-        // Send length of message.
-        // Send message.
-        // Listen for "accepted".
-        // Send my information to other node (return calls, etc).
+        NodeInfo ni;
+        if (!get_random_node(ni, job.service)) return false;
+        for (const Address a : ni.addresses)
+        {
+            if (test(a.hostname, a.port, ni.id))
+            {
+                publish(a.hostname, a.port); // Tell remote to ping me.
+                asio::ip::tcp::iostream stream(a.hostname,
+                    std::to_string(a.port));
+                if (!stream) return false;
+                stream << JOB << std::endl;
+                stream << job.service << std::endl;
+                stream << job.message.size() << std::endl;
+                stream << job.message << std::endl;
+                int t;
+                stream >> t;
+                return t == ACCEPTED;
+            }
+        }
     }
     catch (std::exception& e)
     {
         std::cerr << "Exception: " << e.what() << std::endl;
-        throw e;
+        return false;
     }
-    return true;
+    return false;
 }
 
 
