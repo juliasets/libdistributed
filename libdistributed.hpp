@@ -29,6 +29,7 @@ struct Job
 class Node
 {
 
+    unsigned short myport;
     boost::asio::io_service io_service;
     boost::asio::ip::tcp::acceptor acceptor;
 
@@ -42,43 +43,46 @@ class Node
     bool get_random_node (_utility::NodeInfo & ni);
 
     std::thread maintainer;
-    bool maintaining = true;
     std::timed_mutex maintain_timer;
     void maintain_forever ();
 
-    bool ping (std::string hostname, unsigned short port);
-
+    bool ping (std::string hostname, unsigned short port, uint64_t id);
     void pong (boost::asio::ip::tcp::iostream & stream);
+    bool publish (std::string hostname, unsigned short port);
 
     double get_busyness ();
 
 public:
 
     Node (unsigned short port) :
+        myport(port),
         io_service(),
         acceptor(io_service,
             boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-        maintainer()
+        mynodeinfo(),
+        maintainer(),
+        maintain_timer()
     {
         mynodeinfo.id = _utility::rand64();
+        if (mynodeinfo.id == 0) mynodeinfo.id = 1; // Must be non-zero.
         mynodeinfo.last_pinged = 0;
         mynodeinfo.last_success = 0;
         mynodeinfo.busyness = get_busyness();
 
+        maintain_timer.lock(); // Initialize timer.
         maintainer = std::thread(&Node::maintain_forever, this);
             // Start maintainer thread.
     }
 
     ~Node ()
     {
-        maintaining = false;
         maintain_timer.unlock(); // Cancel maintain timer early.
         maintainer.join();
     }
 
     bool join_network (std::string hostname, unsigned short port)
     {
-        return ping(hostname, port);
+        return ping(hostname, port, 0);
     }
 
     Job accept ();

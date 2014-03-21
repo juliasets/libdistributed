@@ -14,8 +14,9 @@ using namespace boost;
 
 enum RequestType
 {
-    PING = 0,
-    JOB = 1
+    JOB = 0,
+    PING = 1,
+    PUBLISH = 2
 };
 
 
@@ -42,6 +43,7 @@ bool Node::get_random_node (NodeInfo & ni)
         PING
         hostname port
     Read:
+        remote node's id; if id != 0 and id doesn't match, return false
         number of nodes
         for each node:
             read node
@@ -52,7 +54,7 @@ bool Node::get_random_node (NodeInfo & ni)
             add node to records
     Returns: true if remote host responded as expected, false otherwise
 */
-bool Node::ping (std::string hostname, unsigned short port)
+bool Node::ping (std::string hostname, unsigned short port, uint64_t id)
 {
     try
     {
@@ -61,6 +63,9 @@ bool Node::ping (std::string hostname, unsigned short port)
         stream << PING << std::endl;
         stream << hostname << ' ' << port << std::endl;
         // Wait for information from host.
+        uint64_t remote_id;
+        stream >> remote_id;
+        if (id != 0 && remote_id != id) return false;
         size_t count;
         stream >> count;
         NodeInfo tempnode;
@@ -111,6 +116,7 @@ bool Node::ping (std::string hostname, unsigned short port)
         insert hostname and port into list of addresses
         update my own node information before sending it
     Write:
+        my id
         number of total nodes (including myself)
         send my node
         for each other node I know about:
@@ -125,6 +131,8 @@ void Node::pong (asio::ip::tcp::iostream & stream)
     mynodeinfo.addresses.insert(a);
     mynodeinfo.last_pinged = mynodeinfo.last_success = time(NULL);
     mynodeinfo.busyness = get_busyness();
+    // Send my id.
+    stream << mynodeinfo.id << std::endl;
     // Next, send everything I know.
     SYNCHRONIZED (data_lock)
     {
@@ -140,6 +148,30 @@ void Node::pong (asio::ip::tcp::iostream & stream)
 
 
 /*
+    Publish this node's information by telling a remote host to ping it.
+    Send:
+        PUBLISH
+        my port
+*/
+bool Node::publish (std::string hostname, unsigned short port)
+{
+    try
+    {
+        asio::ip::tcp::iostream stream(hostname, std::to_string(port));
+        if (!stream) return false;
+        stream << PUBLISH << std::endl;
+        stream << myport << std::endl;
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+
+/*
     Maintain the network forever.
     Every second:
         Select a node randomly to ping. Continue if no other nodes known.
@@ -151,15 +183,23 @@ void Node::pong (asio::ip::tcp::iostream & stream)
 */
 void Node::maintain_forever ()
 {
-    for (; maintaining;
-        maintain_timer.try_lock_for(std::chrono::milliseconds(1000)))
+    for (;
+        // Workaround: try_lock_for() is broken in gcc 4.7, and won't be
+        // fixed until at least gcc 4.9
+        // See gcc.gnu.org/bugzilla/show_bug.cgi?id=54562
+        !maintain_timer.try_lock_until(
+            std::chrono::system_clock::now() +
+                std::chrono::milliseconds(1000));
+        )
     {
         NodeInfo ni;
+        std::cout << "maintaining!" << std::endl;
         if (!get_random_node(ni)) continue; // No other nodes known.
+        std::cout << "pinging" << std::endl;
         bool succeeded = false;
         for (const Address a : ni.addresses)
         {
-            succeeded = ping(a.hostname, a.port);
+            succeeded = ping(a.hostname, a.port, ni.id);
             if (succeeded) break;
         }
         if (!succeeded)
@@ -192,7 +232,10 @@ Job Node::accept ()
         {
             system::error_code error;
             asio::ip::tcp::iostream stream;
-            acceptor.accept(*stream.rdbuf(), error);
+            asio::ip::tcp::endpoint remote_ep;
+            acceptor.accept(*stream.rdbuf(), remote_ep, error);
+            unsigned short port = remote_ep.port();
+            std::cout << remote_ep.address().to_string() << ' ' << port << std::endl;
             if (!error)
             {
                 unsigned request;
@@ -200,6 +243,14 @@ Job Node::accept ()
                 if (request == PING)
                 {
                     pong(stream);
+                    continue;
+                }
+                if (request == PUBLISH)
+                {
+                    unsigned short port;
+                    stream >> port;
+                    stream.close();
+                    ping(remote_ep.address().to_string(), port, 0);
                     continue;
                 }
                 Job job;

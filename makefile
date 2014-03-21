@@ -1,8 +1,14 @@
 SHELL := /bin/bash
 
-CC := g++ --std=c++11 -Wall -Wextra --pedantic -c
+D := -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1 \
+    -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 \
+    -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 \
+    -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
+G := clang++ $(D)
+G := g++
 
-LD := g++ --std=c++11 -Wall -Wextra --pedantic
+CC := $(G) --std=c++11 -Wall -Wextra --pedantic -c
+LD := $(G) --std=c++11 -Wall -Wextra --pedantic
 
 .PHONY: all
 all: libdistributed.o
