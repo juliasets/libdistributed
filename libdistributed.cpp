@@ -89,9 +89,6 @@ bool Node::ping (std::string hostname, unsigned short port, uint64_t id)
                     // Remove node from list of services.
                     for (const std::string & service : it->second.services)
                         nodes_by_service[service].erase(tempnode.id);
-                    // Merge address sets.
-                    tempnode.addresses.insert(it->second.addresses.begin(),
-                        it->second.addresses.end());
                 }
                 // Put tempnode in our records.
                 nodes_by_id[tempnode.id] = tempnode;
@@ -185,7 +182,7 @@ void Node::maintain_forever ()
 {
     for (;
         // Workaround: try_lock_for() is broken in gcc 4.7, and won't be
-        // fixed until at least gcc 4.9
+        // fixed until gcc 4.9
         // See gcc.gnu.org/bugzilla/show_bug.cgi?id=54562
         !maintain_timer.try_lock_until(
             std::chrono::system_clock::now() +
@@ -193,9 +190,7 @@ void Node::maintain_forever ()
         )
     {
         NodeInfo ni;
-        std::cout << "maintaining!" << std::endl;
         if (!get_random_node(ni)) continue; // No other nodes known.
-        std::cout << "pinging" << std::endl;
         bool succeeded = false;
         for (const Address a : ni.addresses)
         {
