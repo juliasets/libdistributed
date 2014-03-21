@@ -1,9 +1,12 @@
 #include "ThreadPool.hpp"
+#include <iostream>
 
 std::function<void ()> ThreadPool::pop()
 {
     std::unique_lock<std::mutex> ul(queueLock);
-    cv.wait(ul, [this](){ return !tasks.empty();});
+    cv.wait(ul, [this](){ return (!tasks.empty())||(!running);});
+    if (tasks.empty())
+        return NULL;
     std::function<void ()> task = tasks.front();
     tasks.pop();
     return task;
@@ -12,8 +15,10 @@ std::function<void ()> ThreadPool::pop()
 void ThreadPool::shutdown()
 {
     running = false;
+    cv.notify_all();
     for (std::thread &t : threads)
     {
+        cv.notify_all();
         t.join();
     }
 };
@@ -36,6 +41,8 @@ void performTask(ThreadPool * tp)
     while (tp->isRunning())
     {
         std::function<void ()> task = tp->pop();
+        if (task == NULL)
+            continue;
         task();
     }
 };
