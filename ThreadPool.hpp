@@ -21,6 +21,8 @@ private:
     std::vector<std::thread> threads;
     bool running;
     
+    bool isRunning () { return running || (!tasks.empty()); };
+    
     void performTask ()
     {
         while (isRunning())
