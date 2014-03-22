@@ -45,6 +45,10 @@ private:
     
 public:
     
+    /*
+    Create ThreadPool. Starts running numThreads threads with the function
+    performTask.
+    */
     ThreadPool (int numThreads)
     {
         running = true;
@@ -56,8 +60,10 @@ public:
         }
     }
     
-    bool isRunning () { return running || (!tasks.empty()); };
-    
+    /*
+    Refuse new tasks, finish off all tasks in the queue, and join the worker 
+    threads.
+    */
     void shutdown ()
     {
         running = false;
@@ -68,9 +74,12 @@ public:
         }
     }
     
+    /*
+    Add new task to thread pool. The function is pushed to the end of the queue.
+    */
     void execute (std::function<void ()> func)
     {
-        if (func == NULL)
+        if (!running) //if shutdown has been called, refuse new tasks
             return;
         if (running)
         {
