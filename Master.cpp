@@ -1,12 +1,34 @@
 
 #include "Master.hpp"
 #include "utility.hpp"
+#include "utility_macros.hpp"
 
 #include <algorithm>
 #include <random>
+#include <ctime>
 
 using namespace Distributed;
 using namespace Distributed::_utility;
+
+
+unsigned short Master::lowport = 30000;
+
+
+bool Master::initialize (unsigned short port)
+{
+    myport = port;
+    try
+    {
+        acceptor = std::move(boost::asio::ip::tcp::acceptor(
+            io_service,
+            boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),
+                port)
+        ));
+        return true;
+    }
+    catch (std::exception &) {}
+    return false;
+}
 
 
 /*
@@ -30,112 +52,71 @@ Master::_slave Master::get_slave ()
         }
         return slaves[slaves.size() - 1]; // Default: return last slave.
     }
+    return slaves[0]; // UNREACHABLE
 }
 
 
-void Master::server_forever ()
+void Master::serve_forever ()
 {
-    // TODO: spawn thread to poke the master above me, if one exists,
-    // or poke clients if I am the master. Poke master by asking to join
-    // it repeatedly.
-    std::string hostname, msg, line;
-    std::stringstream istream;
-    unsigned short port;
-    bool success;
+    // TODO: Secondary masters.
+    std::string command;
     for (;;)
     {
-        success = comm.recv_from(hostname, port, msg);
-        if (!success) continue; // Failed to receive.
-        istream.str(msg);
-        istream >> line;
-        if (line == "Master_join")
+        try
         {
-            SYNCHRONIZED (master_lock)
+            boost::system::error_code error;
+            boost::asio::ip::tcp::iostream stream;
+            boost::asio::ip::tcp::endpoint remote_ep;
+            acceptor.accept(*stream.rdbuf(), remote_ep, error);
+            if (error) continue;
+            stream >> command;
+            if (command == "slave")
             {
-                // A master is trying to join. Add it to the list of
-                // masters (if not already there).
-                _master remote;
-                remote.hostname = hostname;
-                remote.port = port;
-                remote.alive = true;
-                if (std::find(masters.begin(), masters.end()) == masters.end())
-                    masters.push_back(remote);
-            }
-            // Send master list.
-            send_masters(hostname, port);
-        }
-        else if (line == "Master_list")
-        {
-            SYNCHRONIZED (master_lock)
-            {
-                // Receive master list, and where I am on it (if applicable).
-                my_place = -1;
-                size_t listsize;
-                istream >> listsize;
-                masters.resize(listsize);
-                for (size_t i = 0; i < listsize; ++i)
+                _slave slave;
+                slave.hostname = remote_ep.address().to_string();
+                stream >> slave.port;
+                stream >> slave.load;
+                slave.last_seen = time(NULL);
+                std::cout << "Logging slave (" << slave.hostname << ", " <<
+                    slave.port << ", " << slave.load << ") at time " <<
+                    slave.last_seen << std::endl;
+                SYNCHRONIZED (slave_lock)
                 {
-                    bool me;
-                    _master remote;
-                    istream >> remote.hostname >> remote.port >>
-                        remote.alive >> me;
-                    masters[i] = remote;
-                    if (me) my_place = i;
+                    bool found = false;
+                    for (size_t i = 0; i < slaves.size(); ++i)
+                    {
+                        // Update entry if it exists.
+                        auto &s = slaves[i];
+                        if (slave.hostname == s.hostname &&
+                            slave.port == s.port)
+                        {
+                            s = slave;
+                            found = true;
+                        }
+                        // Erase old entries.
+                        if (time(NULL) - slave.last_seen > 60)
+                        {
+                            slaves.erase(slaves.begin() + i);
+                            --i; // Cancel ++i.
+                        }
+                    }
+                    // Add entry if it doesn't exist.
+                    if (!found)
+                        slaves.push_back(slave);
                 }
             }
-            SYNCHRONIZED (slave_lock)
+            else if (command == "client")
             {
-                // Receive slave list.
-                size_t listsize;
-                istream >> listsize;
-                slaves.resize(listsize);
-                for (size_t i = 0; i < listsize; ++i)
-                {
-                    _slave remote;
-                    istream >> remote.hostname >> remote.port >>
-                        remote.alive >> remote.load;
-                    slaves[i] = remote;
-                }
-            }
-            SYNCHRONIZED (job_lock)
-            {
-                // Receive job list.
-                size_t listsize;
-                istream >> listsize;
-                jobs.resize(listsize);
-                for (size_t i = 0; i < listsize; ++i)
-                {
-                    _job remote;
-                    istream >> 
-                }
+                _slave slave = get_slave();
+                stream << slave.hostname << ' ' << slave.port << std::endl;
             }
         }
-        else if (line == "Client_job")
+        catch (std::exception & e)
         {
-            std::stringstream ostream;
-            ostream << "Master_job" << std::endl;
-            istream >> ostream.rdbuf();
-            _slave slave = get_slave();
-            // If I can't send the job to a slave immediately, try to send
-            // it back to the client. If that fails, give up hope.
-            if (!comm.send_to(slave.hostname, slave.port, ostream.str()))
-            {
-                comm.send_to(hostname, port, ostream.str()); // Ignore errors.
-                continue; // Don't add to job list.
-            }
-            _client client;
-            client.hostname = hostname;
-            client.port = port;
-            _job job;
-            istream >> job.msg;
-            job.assignee = slave;
-            job.assigner = client;
-            SYNCHRONIZED (job_lock)
-            {
-                jobs.push_back(job);
-            }
+            std::cerr << "Exception in serve_forever: " << e.what() <<
+                std::endl;
+            continue;
         }
-        else if (line == "")
     }
 }
 
