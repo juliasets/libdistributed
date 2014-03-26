@@ -33,24 +33,6 @@ Master::_slave Master::get_slave ()
 }
 
 
-void Master::send_masters (const std::string & hostname, unsigned short port)
-{
-    std::stringstream ostream;
-    SYNCHRONIZED (master_lock)
-    {
-        // Send master list, and where/if you are on it.
-        ostream << "Master_list" << std::endl;
-        ostream << masters.size() << std::endl;
-        for (const _master & master : masters)
-            ostream << master.hostname << ' ' << master.port << ' ' <<
-                master.alive << ' ' <<
-                (master.hostname == hostname && master.port == port) <<
-                std::endl;
-    }
-    comm.send_to(hostname, port, ostream.str()); // Ignore errors here.
-}
-
-
 void Master::server_forever ()
 {
     // TODO: spawn thread to poke the master above me, if one exists,

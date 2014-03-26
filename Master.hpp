@@ -47,7 +47,6 @@ class Master
     };
 
     typedef host std::pair<std::string, unsigned short>;
-    std::vector<_master> masters;
     std::vector<_slave> slaves;
     std::vector<_job> jobs;
     ssize_t my_place = 0;
