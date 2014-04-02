@@ -22,7 +22,7 @@ LIBS := -lboost_system -pthread
 
 .PHONY: test
 test: master-test slave-test client-test
-	./master-test | ./slave-test | ./slave-test | ./slave-test | ./client-test
+	./master-test | ./slave-test | ./slave-test | ./slave-test | ./client-test | ./client-test | ./client-test
 
 #communicator-test: Communicator-test.cpp Communicator.hpp
 #	$(CC) Communicator-test.cpp

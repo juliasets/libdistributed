@@ -121,8 +121,6 @@ bool ClientJob::send_job (const std::string & msg)
     {
         boost::asio::ip::tcp::iostream
             stream(_hostname, std::to_string(_port));
-        _utility::log.o << "Sending job to: " << _hostname << ", " << _port << std::endl;
-        _utility::log.flush(); // TODO
         if (!stream) return false;
         stream << myport << std::endl;
         stream << msg;

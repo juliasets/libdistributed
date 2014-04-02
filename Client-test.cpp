@@ -29,7 +29,7 @@ int main ()
     /*
         Create a bunch of jobs and send them to slaves.
     */
-    for (unsigned i = 0; i < 2; ++i)
+    for (unsigned i = 0; i < 10; ++i)
     {
         jobs.emplace_back(new ClientJob(client));
         if (!*jobs[i])
@@ -52,22 +52,24 @@ int main ()
     /*
         Get the result from each job.
     */
-    for (unsigned i = 0; i < 1; ++i)
+    for (auto & job : jobs)
     {
         std::string result;
-        if (jobs[i]->get_result(4000, result))
+        if (job->get_result(10000, result))
         {
-            _utility::log.o << "ClientJob (" << jobs[i]->port() <<
+            _utility::log.o << "ClientJob (" << job->port() <<
                 ") result: " << result << std::endl;
         }
         else
         {
-            _utility::log.o << "ClientJob (" << jobs[i]->port() <<
+            _utility::log.o << "ClientJob (" << job->port() <<
                 ") failed." << std::endl;
         }
         _utility::log.flush();
     }
 
+    _utility::log.o << "Success!" << std::endl;
+    _utility::log.flush();
 }
 
 
