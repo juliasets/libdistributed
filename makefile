@@ -17,16 +17,12 @@ CC := $(G) --std=c++11 -Wall -Wextra --pedantic -c
 LD := $(G) --std=c++11 -Wall -Wextra --pedantic
 LIBS := -lboost_system -pthread
 
-#.PHONY: all
-#all: libdistributed.o
+.PHONY: all
+all: Master.o Slave.o Client.o utility.o
 
 .PHONY: test
 test: master-test slave-test client-test
 	./master-test | ./slave-test | ./slave-test | ./slave-test | ./client-test | ./client-test | ./client-test
-
-#communicator-test: Communicator-test.cpp Communicator.hpp
-#	$(CC) Communicator-test.cpp
-#	$(LD) -o communicator-test Communicator-test.o $(LIBS)
 
 master-test: Master-test.cpp Master.o Master.hpp utility.o
 	$(CC) Master-test.cpp
@@ -49,21 +45,11 @@ client-test: Client-test.cpp Client.o utility.o
 Client.o: Client.hpp Client.cpp utility.hpp
 	$(CC) Client.cpp
 
-#test: libdistributed.o utility.o test.o
-#	$(LD) -o test test.o libdistributed.o utility.o -lboost_system -pthread
-
-#test.o: test.cpp libdistributed.hpp
-#	$(CC) test.cpp
-
-#libdistributed.o: libdistributed.hpp libdistributed.cpp \
-#    utility.hpp utility_macros.hpp
-#	$(CC) libdistributed.cpp
-
 utility.o: utility.hpp utility_macros.hpp utility.cpp
 	$(CC) utility.cpp
 
 .PHONY: clean
 clean:
 	rm -rf *~ *.gch *.o
-	rm -rf test communicator-test master-test
+	rm -rf *-test
 
