@@ -34,7 +34,7 @@ void Slave::maintain_forever ()
         // gcc-4.7 in the makefile.
         !maintain_timer.try_lock_until(
             std::chrono::steady_clock::now() +
-                std::chrono::milliseconds(1000));
+                std::chrono::milliseconds(masters.size() ? 5000 : 100));
         )
     {
         SYNCHRONIZED (master_lock)
@@ -46,8 +46,10 @@ void Slave::maintain_forever ()
                     boost::asio::ip::tcp::iostream stream(master.hostname,
                         std::to_string(master.port));
                     if (!stream) continue;
-                    std::cout << "Adding self to (" << master.hostname <<
-                        ", " << master.port << ")" << std::endl;
+                    _utility::log.o << "Adding self (" << myport << ") to (" <<
+                        master.hostname << ", " << master.port
+                        << ")" << std::endl;
+                    _utility::log.flush();
                     stream << "slave" << ' ' << myport << ' ' << load() <<
                         std::endl;
                 }

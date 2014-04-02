@@ -58,7 +58,6 @@ Master::_slave Master::get_slave ()
 
 void Master::serve_forever ()
 {
-    // TODO: Secondary masters.
     std::string command;
     for (;;)
     {
@@ -77,9 +76,10 @@ void Master::serve_forever ()
                 stream >> slave.port;
                 stream >> slave.load;
                 slave.last_seen = time(NULL);
-                std::cout << "Logging slave (" << slave.hostname << ", " <<
-                    slave.port << ", " << slave.load << ") at time " <<
+                _utility::log.o << "Logging slave (" << slave.hostname <<
+                    ", " << slave.port << ", " << slave.load << ") at time " <<
                     slave.last_seen << std::endl;
+                _utility::log.flush();
                 SYNCHRONIZED (slave_lock)
                 {
                     bool found = false;
@@ -113,8 +113,9 @@ void Master::serve_forever ()
         }
         catch (std::exception & e)
         {
-            std::cerr << "Exception in serve_forever: " << e.what() <<
+            _utility::log.o << "Exception in serve_forever: " << e.what() <<
                 std::endl;
+            _utility::log.flush();
             continue;
         }
     }

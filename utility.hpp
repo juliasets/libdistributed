@@ -7,6 +7,7 @@
 #include <vector>
 #include <unordered_set>
 #include <mutex>
+#include <sstream>
 #include <iostream>
 
 
@@ -80,6 +81,17 @@ namespace Distributed
                 _mutex.unlock();
             }
         };
+
+        static class Log {
+        public:
+            std::stringstream o;
+            void flush ()
+            {
+                std::cerr << o.str();
+                std::cerr.flush();
+                o.str("");
+            }
+        } log;
 
     }
 

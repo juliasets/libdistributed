@@ -1,10 +1,16 @@
 SHELL := /bin/bash
 
+# These things need to be defined manually if we are using clang++.
+# G++ defines them automatically. They are needed for creating new threads.
 D := -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1 \
     -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 \
     -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 \
     -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
 G := clang++ $(D)
+
+# TIMED LOCKS ARE ALL BROKEN UNTIL libstdc++ v4.9, WHICH IS PRE-RELEASE.
+# Version 4.7 at least has a working try_lock_until(), even if it isn't
+# standards compliant.
 G := g++-4.7
 
 CC := $(G) --std=c++11 -Wall -Wextra --pedantic -c
@@ -16,6 +22,7 @@ LIBS := -lboost_system -pthread
 
 .PHONY: test
 test: master-test slave-test
+	./master-test | ./slave-test | ./slave-test | ./slave-test
 
 #communicator-test: Communicator-test.cpp Communicator.hpp
 #	$(CC) Communicator-test.cpp
