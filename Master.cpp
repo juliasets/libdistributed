@@ -34,25 +34,34 @@ bool Master::initialize (unsigned short port)
 /*
     Return a slave randomly, weighted inversely by their workload.
 */
-Master::_slave Master::get_slave ()
+bool Master::get_slave (_slave & slave)
 {
     static std::random_device rd;
     static std::default_random_engine rng(rd());
     double total = 0.;
     SYNCHRONIZED (slave_lock)
     {
-        for (const _slave & slave : slaves)
-            total += (1. - slave.load);
+        if (slaves.size() == 0)
+        {
+            return false;
+        }
+        for (const _slave & s : slaves)
+            total += (1. - s.load);
         std::uniform_real_distribution<double> dist(0., total);
         total = dist(rng);
-        for (const _slave & slave : slaves)
+        for (const _slave & s : slaves)
         {
-            total -= (1. - slave.load);
-            if (total < 0.) return slave;
+            total -= (1. - s.load);
+            if (total < 0.)
+            {
+                slave = s;
+                return true;
+            }
         }
-        return slaves[slaves.size() - 1]; // Default: return last slave.
+        slave = slaves[slaves.size() - 1]; // Default: return last slave.
+        return true;
     }
-    return slaves[0]; // UNREACHABLE
+    return false; // UNREACHABLE
 }
 
 
@@ -107,7 +116,9 @@ void Master::serve_forever ()
             }
             else if (command == "client")
             {
-                _slave slave = get_slave();
+                _slave slave;
+                if (!get_slave(slave)) // No available slaves!
+                    continue;
                 stream << slave.hostname << ' ' << slave.port << std::endl;
             }
         }

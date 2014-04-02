@@ -21,8 +21,8 @@ LIBS := -lboost_system -pthread
 #all: libdistributed.o
 
 .PHONY: test
-test: master-test slave-test
-	./master-test | ./slave-test | ./slave-test | ./slave-test
+test: master-test slave-test client-test
+	./master-test | ./slave-test | ./slave-test | ./slave-test | ./client-test
 
 #communicator-test: Communicator-test.cpp Communicator.hpp
 #	$(CC) Communicator-test.cpp
@@ -41,6 +41,13 @@ slave-test: Slave-test.cpp Slave.o utility.o
 
 Slave.o: Slave.hpp Slave.cpp utility.hpp utility_macros.hpp
 	$(CC) Slave.cpp
+
+client-test: Client-test.cpp Client.o utility.o
+	$(CC) Client-test.cpp
+	$(LD) -o client-test Client-test.o Client.o utility.o $(LIBS)
+
+Client.o: Client.hpp Client.cpp utility.hpp
+	$(CC) Client.cpp
 
 #test: libdistributed.o utility.o test.o
 #	$(LD) -o test test.o libdistributed.o utility.o -lboost_system -pthread

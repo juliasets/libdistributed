@@ -14,13 +14,6 @@ namespace Distributed {
 class Master
 {
 
-    struct _master
-    {
-        std::string hostname;
-        unsigned short port;
-        bool alive;
-    };
-
     struct _slave
     {
         std::string hostname;
@@ -41,7 +34,7 @@ class Master
 
     bool initialize (unsigned short port);
 
-    _slave get_slave ();
+    bool get_slave (_slave & slave);
 
 public:
 

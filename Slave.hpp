@@ -12,6 +12,38 @@ namespace Distributed {
 
 
 
+class SlaveJob
+{
+    std::string _hostname;
+    unsigned short _port;
+    std::string _message;
+
+public:
+
+    SlaveJob () {}
+
+    SlaveJob (const std::string & hostname, unsigned short port,
+        const std::string & message) :
+        _hostname(hostname), _port(port), _message(message) {}
+
+    /*
+        Get the job that was sent to this slave as a string.
+    */
+    std::string get_job () { return _message; }
+
+    /*
+        Send the result of the computation back to the client.
+    */
+    void send_result (const std::string & msg)
+    {
+        boost::asio::ip::tcp::iostream
+            stream(_hostname, std::to_string(_port));
+        if (!stream) return;
+        stream << msg;
+    }
+};
+
+
 class Slave
 {
 
@@ -56,6 +88,7 @@ public:
                 success = initialize(lowport);
                 if (success) break;
             }
+            if (!success) return;
         }
 
         maintain_timer.lock(); // Initialize timer.
@@ -66,7 +99,8 @@ public:
     ~Slave ()
     {
         maintain_timer.unlock();
-        maintainer.join();
+        if (maintainer.joinable())
+            maintainer.join();
     }
 
     /*
@@ -75,7 +109,7 @@ public:
     operator void * () { return (void *) success; }
 
     /*
-        Get the port this master is serving on.
+        Get the port this slave is serving on.
     */
     unsigned short port () { return myport; }
 
@@ -84,7 +118,7 @@ public:
     */
     void add_master (const std::string & hostname, unsigned short port);
 
-    std::string serve ();
+    bool serve (SlaveJob & job);
 
 };
 
