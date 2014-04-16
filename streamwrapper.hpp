@@ -7,6 +7,7 @@
 
 #include <string>
 #include <sstream>
+#include <exception>
 
 #include <boost/asio.hpp>
 
@@ -33,7 +34,7 @@ static std::string skein_mac (const std::string & key,
         (u08b_t *) result.data(), result.size());
     Skein_512_Update(&ctx, (u08b_t *) data.data(), data.size());
     Skein_512_Final(&ctx, (u08b_t *) &result[0]);
-    return "";
+    return result;
 }
 
 
@@ -55,16 +56,16 @@ public:
 
     void flush ()
     {
-        //std::string nonce = uunique_str();
+        std::string nonce = uunique_str();
         std::string str(o.str());
 
         // First write nonce.
-        //_stream << nonce;
+        _stream << nonce;
         // Then write data.
         _stream << str.size() << std::endl;
         _stream << str;
         // Then write MAC.
-        //_stream << skein_mac(_key, nonce, str);
+        _stream << skein_mac(_key, nonce, str);
         _stream.flush();
 
         o.str("");
@@ -72,28 +73,33 @@ public:
 
     void buffer ()
     {
-        //std::string nonce;
+        std::string nonce;
         std::string str;
         size_t size;
-        //std::string mac, mac_computed;
+        std::string mac, mac_computed;
 
         // First read nonce.
-        //nonce.resize(256 / 8);
-        //_stream.read(&nonce[0], 256 / 8);
+        nonce.resize(256 / 8);
+        _stream.read(&nonce[0], 256 / 8);
         // Then read data.
         _stream >> size;
         _stream.get(); // Eat newline.
         str.resize(size);
         _stream.read(&str[0], size);
         // Then read MAC.
-        //mac.resize(512 / 8);
-        //_stream.read(&mac[0], 512 / 8);
+        mac.resize(512 / 8);
+        _stream.read(&mac[0], 512 / 8);
         // Then check MAC.
-        //mac_computed = skein_mac(_key, nonce, str);
-        //bool equal = 1;
-        //for (size_t i = 0; i < 512 / 8; ++i) // Constant-time test.
-        //    equal &= mac[i] == mac_computed[i];
-        //if (!equal) return;
+        mac_computed = skein_mac(_key, nonce, str);
+        bool equal = 1;
+        for (size_t i = 0; i < 512 / 8; ++i) // Constant-time test.
+            equal &= mac[i] == mac_computed[i];
+        if (!equal)
+        {
+            log.o << "Received unauthenticated message!" << std::endl;
+            log.flush();
+            throw std::exception();
+        }
 
         i << str;
     }
