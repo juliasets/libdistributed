@@ -24,32 +24,35 @@ all: Master.o Slave.o Client.o utility.o
 test: master-test slave-test client-test
 	./master-test | ./slave-test | ./slave-test | ./slave-test | ./client-test | ./client-test | ./client-test
 
-master-test: Master-test.cpp Master.o Master.hpp utility.o
+master-test: Master-test.cpp Master.o Master.hpp utility.o skein/skein.o
 	$(CC) Master-test.cpp
-	$(LD) -o master-test Master-test.o Master.o utility.o $(LIBS)
+	$(LD) -o master-test Master-test.o Master.o utility.o skein/*.o $(LIBS)
 
-Master.o: Master.hpp Master.cpp utility.hpp utility_macros.hpp
+Master.o: Master.hpp Master.cpp streamwrapper.hpp utility.hpp utility_macros.hpp skein/skein.h
 	$(CC) Master.cpp
 
-slave-test: Slave-test.cpp Slave.o utility.o
+slave-test: Slave-test.cpp Slave.o utility.o skein/skein.o
 	$(CC) Slave-test.cpp
-	$(LD) -o slave-test Slave-test.o Slave.o utility.o $(LIBS)
+	$(LD) -o slave-test Slave-test.o Slave.o utility.o skein/*.o $(LIBS)
 
-Slave.o: Slave.hpp Slave.cpp utility.hpp utility_macros.hpp
+Slave.o: Slave.hpp Slave.cpp streamwrapper.hpp utility.hpp utility_macros.hpp skein/skein.h
 	$(CC) Slave.cpp
 
-client-test: Client-test.cpp Client.o utility.o
+client-test: Client-test.cpp Client.o utility.o skein/skein.o
 	$(CC) Client-test.cpp
-	$(LD) -o client-test Client-test.o Client.o utility.o $(LIBS)
+	$(LD) -o client-test Client-test.o Client.o utility.o skein/*.o $(LIBS)
 
-Client.o: Client.hpp Client.cpp utility.hpp
+Client.o: Client.hpp Client.cpp streamwrapper.hpp utility.hpp skein/skein.h
 	$(CC) Client.cpp
 
 utility.o: utility.hpp utility_macros.hpp utility.cpp
 	$(CC) utility.cpp
 
+skein/skein.o:
+	cd skein && gcc -c *.c
+
 .PHONY: clean
 clean:
-	rm -rf *~ *.gch *.o
+	rm -rf *~ *.gch *.o skein/*~ skein/*.gch skein/*.o
 	rm -rf *-test
 

@@ -2,6 +2,7 @@
 #include "Master.hpp"
 #include "utility.hpp"
 #include "utility_macros.hpp"
+#include "streamwrapper.hpp"
 
 #include <algorithm>
 #include <random>
@@ -77,13 +78,15 @@ void Master::serve_forever ()
             boost::asio::ip::tcp::endpoint remote_ep;
             acceptor.accept(*stream.rdbuf(), remote_ep, error);
             if (error) continue;
-            stream >> command;
+            _utility::StreamWrapper wrapped(_key, stream);
+            wrapped.buffer();
+            wrapped.i >> command;
             if (command == "slave")
             {
                 _slave slave;
                 slave.hostname = remote_ep.address().to_string();
-                stream >> slave.port;
-                stream >> slave.load;
+                wrapped.i >> slave.port;
+                wrapped.i >> slave.load;
                 slave.last_seen = time(NULL);
                 _utility::log.o << "Logging slave (" << slave.hostname <<
                     ", " << slave.port << ", " << slave.load << ") at time " <<
@@ -119,7 +122,8 @@ void Master::serve_forever ()
                 _slave slave;
                 if (!get_slave(slave)) // No available slaves!
                     continue;
-                stream << slave.hostname << ' ' << slave.port << std::endl;
+                wrapped.o << slave.hostname << ' ' << slave.port << std::endl;
+                wrapped.flush();
             }
         }
         catch (std::exception & e)

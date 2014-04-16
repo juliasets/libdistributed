@@ -15,8 +15,8 @@ int main ()
     std::cin >> masterport;
     std::cout << masterport << std::endl; // Pass master port to next slave.
 
-    Slave slave;
-    slave.add_master("localhost", masterport);
+    Slave slave("p455w0rd");
+    slave.add_master("127.0.0.1", masterport);
 
     _utility::log.o << "Slave: " << slave.port() << std::endl;
     _utility::log.flush();

@@ -21,8 +21,8 @@ int main ()
 
     sleep(1);
 
-    Client client;
-    client.add_master("localhost", masterport);
+    Client client("p455w0rd");
+    client.add_master("127.0.0.1", masterport);
 
     std::vector< std::unique_ptr<ClientJob> > jobs;
 

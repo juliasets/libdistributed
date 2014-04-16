@@ -26,6 +26,8 @@ class Master
 
     std::recursive_mutex slave_lock;
 
+    std::string _key;
+
     static unsigned short lowport;
     unsigned short myport;
     boost::asio::io_service io_service;
@@ -40,7 +42,8 @@ public:
 
     Master (const Master &) = delete;
 
-    Master (unsigned short port = 0) :
+    Master (const std::string & key, unsigned short port = 0) :
+        _key(key),
         io_service(),
         acceptor(io_service)
     {

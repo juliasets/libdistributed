@@ -3,6 +3,7 @@
 
 #include "utility.hpp"
 #include "utility_macros.hpp"
+#include "streamwrapper.hpp"
 
 #include <chrono>
 #include <sstream>
@@ -45,14 +46,17 @@ void Slave::maintain_forever ()
                 try
                 {
                     boost::asio::ip::tcp::iostream stream(master.hostname,
-                        std::to_string(master.port));
+                        std::to_string(master.port),
+                        boost::asio::ip::resolver_query_base::flags(0));
                     if (!stream) continue;
+                    _utility::StreamWrapper wrapped(_key, stream);
                     _utility::log.o << "Adding self (" << myport << ") to (" <<
                         master.hostname << ", " << master.port
                         << ")" << std::endl;
                     _utility::log.flush();
-                    stream << "slave" << ' ' << myport << ' ' << load() <<
+                    wrapped.o << "slave" << ' ' << myport << ' ' << load() <<
                         std::endl;
+                    wrapped.flush();
                 }
                 catch (std::exception & e)
                 {
@@ -102,12 +106,15 @@ bool Slave::serve (SlaveJob & job)
         boost::asio::ip::tcp::endpoint remote_ep;
         acceptor.accept(*stream.rdbuf(), remote_ep, error);
         if (error) return false;
+        _utility::StreamWrapper wrapped(_key, stream);
+        wrapped.buffer();
         unsigned short port;
-        stream >> port;
-        stream.get(); // Eat one whitespace after port.
+        wrapped.i >> port;
+        wrapped.i.get(); // Eat one whitespace after port.
         std::stringstream data;
-        data << stream.rdbuf();
-        job = SlaveJob(remote_ep.address().to_string(), port, data.str());
+        data << wrapped.i.rdbuf();
+        job = SlaveJob(_key,
+            remote_ep.address().to_string(), port, data.str());
         return true;
     }
     catch (std::exception & e)

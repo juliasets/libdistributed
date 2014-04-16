@@ -10,7 +10,7 @@ using namespace Distributed;
 
 int main ()
 {
-    Master master;
+    Master master("p455w0rd");
 
     _utility::log.o << "Master: " << master.port() << std::endl;
     _utility::log.flush();

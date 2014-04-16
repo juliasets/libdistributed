@@ -19,6 +19,7 @@ namespace Distributed
 
         uint64_t rand64 ();
         uint64_t prand64 ();
+        std::string uunique_str ();
 
         struct Address
         {

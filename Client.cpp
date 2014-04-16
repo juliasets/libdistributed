@@ -2,6 +2,7 @@
 #include "Client.hpp"
 
 #include "utility.hpp"
+#include "streamwrapper.hpp"
 
 #include <chrono>
 
@@ -31,10 +32,14 @@ bool Client::get_slave (std::string & hostname, unsigned short & port) const
         try
         {
             boost::asio::ip::tcp::iostream
-                stream(master.hostname, std::to_string(master.port));
+                stream(master.hostname, std::to_string(master.port),
+                    boost::asio::ip::resolver_query_base::flags(0));
             if (!stream) continue;
-            stream << "client" << std::endl;
-            stream >> hostname >> port;
+            _utility::StreamWrapper wrapped(_key, stream);
+            wrapped.o << "client" << std::endl;
+            wrapped.flush();
+            wrapped.buffer();
+            wrapped.i >> hostname >> port;
             return true;
         }
         catch (std::exception & e)
@@ -80,8 +85,10 @@ void ClientJob::serve ()
         boost::asio::ip::tcp::endpoint remote_ep;
         acceptor.accept(*stream.rdbuf(), remote_ep, error);
         if (error) throw std::exception();
+        _utility::StreamWrapper wrapped(_key, stream);
+        wrapped.buffer();
         std::stringstream data;
-        data << stream.rdbuf();
+        data << wrapped.i.rdbuf();
         result = data.str();
     }
     catch (std::exception & e)
@@ -104,7 +111,8 @@ void ClientJob::cancel ()
     try
     {
         boost::asio::ip::tcp::iostream
-            stream("localhost", std::to_string(myport));
+            stream("127.0.0.1", std::to_string(myport),
+                boost::asio::ip::resolver_query_base::flags(0));
     }
     catch (std::exception &e)
     {}
@@ -120,10 +128,13 @@ bool ClientJob::send_job (const std::string & msg)
     try
     {
         boost::asio::ip::tcp::iostream
-            stream(_hostname, std::to_string(_port));
+            stream(_hostname, std::to_string(_port),
+                boost::asio::ip::resolver_query_base::flags(0));
         if (!stream) return false;
-        stream << myport << std::endl;
-        stream << msg;
+        _utility::StreamWrapper wrapped(_key, stream);
+        wrapped.o << myport << std::endl;
+        wrapped.o << msg;
+        wrapped.flush();
         return true;
     }
     catch (std::exception & e)

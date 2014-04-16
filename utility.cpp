@@ -24,6 +24,20 @@ uint64_t _utility::prand64 ()
 }
 
 
+std::string _utility::uunique_str ()
+{
+    std::string ret;
+    ret.resize(32);
+    for (int i = 0; i < 32; i += 8)
+    {
+        uint64_t num = rand64();
+        for (int j = 0; j < 8; ++j)
+            ret[i + j] = num >> (j << 3);
+    }
+    return ret;
+}
+
+
 std::ostream & operator << (std::ostream & os,
     const Distributed::_utility::NodeInfo & ni)
 {

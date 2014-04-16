@@ -11,6 +11,10 @@ namespace Distributed {
 
 
 
+class ClientJob;
+
+
+
 class Client
 {
 
@@ -20,11 +24,12 @@ class Client
         unsigned short port;
     };
 
+    std::string _key;
     std::vector<_master> masters;
 
 public:
 
-    Client () : masters() {}
+    Client (const std::string & key) : _key(key), masters() {}
 
     /*
         Add a master.
@@ -33,11 +38,15 @@ public:
 
     bool get_slave (std::string & hostname, unsigned short & port) const;
 
+    friend class ClientJob;
+
 };
 
 
 class ClientJob
 {
+    std::string _key;
+
     unsigned short myport;
     boost::asio::io_service io_service;
     boost::asio::ip::tcp::acceptor acceptor;
@@ -61,6 +70,7 @@ public:
     ClientJob (const ClientJob &) = delete;
 
     ClientJob (const Client & client) :
+        _key(client._key),
         io_service(), acceptor(io_service),
         _waiter(), _wait()
     {

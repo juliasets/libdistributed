@@ -2,6 +2,8 @@
 #if !defined __slave_hpp__
 #define __slave_hpp__
 
+#include "streamwrapper.hpp"
+
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -14,6 +16,8 @@ namespace Distributed {
 
 class SlaveJob
 {
+    std::string _key;
+
     std::string _hostname;
     unsigned short _port;
     std::string _message;
@@ -22,8 +26,10 @@ public:
 
     SlaveJob () {}
 
-    SlaveJob (const std::string & hostname, unsigned short port,
+    SlaveJob (const std::string & key,
+        const std::string & hostname, unsigned short port,
         const std::string & message) :
+        _key(key),
         _hostname(hostname), _port(port), _message(message) {}
 
     /*
@@ -37,15 +43,20 @@ public:
     void send_result (const std::string & msg)
     {
         boost::asio::ip::tcp::iostream
-            stream(_hostname, std::to_string(_port));
+            stream(_hostname, std::to_string(_port),
+                boost::asio::ip::resolver_query_base::flags(0));
         if (!stream) return;
-        stream << msg;
+        _utility::StreamWrapper wrapped(_key, stream);
+        wrapped.o << msg;
+        wrapped.flush();
     }
 };
 
 
 class Slave
 {
+
+    std::string _key;
 
     static unsigned short lowport;
     unsigned short myport;
@@ -74,7 +85,8 @@ public:
 
     Slave (const Slave &) = delete;
 
-    Slave (unsigned short port = 0) :
+    Slave (const std::string & key, unsigned short port = 0) :
+        _key(key),
         io_service(),
         acceptor(io_service),
         maintainer(),
