@@ -69,6 +69,22 @@ public:
 
     ClientJob (const ClientJob &) = delete;
 
+    ClientJob (const Client & client, const ClientJob & clientjob) :
+        _key(client._key),
+        io_service(), acceptor(io_service),
+        _waiter(), _wait(),
+        _hostname(clientjob._hostname), _port(clientjob._port)
+    {
+        for (unsigned short port = 30000; port < 60000; ++port)
+        {
+            success = initialize(port);
+            if (success) break;
+        }
+
+        _wait.lock(); // Have not received result yet.
+        _waiter = std::thread(&ClientJob::serve, this); // Wait for result.
+    }
+
     ClientJob (const Client & client) :
         _key(client._key),
         io_service(), acceptor(io_service),
@@ -89,7 +105,7 @@ public:
 
     ~ClientJob ()
     {
-        if (_waiter.joinable()) _waiter.join();
+        if (_waiter.joinable()) cancel();
     }
 
     /*

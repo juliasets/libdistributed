@@ -31,7 +31,7 @@ int main ()
     */
     for (unsigned i = 0; i < 10; ++i)
     {
-        jobs.emplace_back(new ClientJob(client));
+        jobs.emplace_back(new ClientJob(client, ClientJob(client)));
         if (!*jobs[i])
         {
             _utility::log.o << "Couldn't get slave from master." << std::endl;
