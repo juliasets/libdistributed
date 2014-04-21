@@ -58,6 +58,11 @@ public:
     {
         std::string nonce = uunique_str();
         std::string str(o.str());
+        /*_utility::log.o<<"str: "<<std::endl;
+        _utility::log.flush();
+        _utility::log.o<<str<<std::endl;
+        _utility::log.o<<"str size: "<<str.size()<<std::endl;
+        _utility::log.flush();*/
 
         // First write nonce.
         _stream << nonce;
@@ -83,6 +88,8 @@ public:
         _stream.read(&nonce[0], 256 / 8);
         // Then read data.
         _stream >> size;
+        //_utility::log.o << "buffer size: " << size <<std::endl;
+        //_utility::log.flush();
         _stream.get(); // Eat newline.
         str.resize(size);
         _stream.read(&str[0], size);

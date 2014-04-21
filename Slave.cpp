@@ -105,6 +105,8 @@ bool Slave::serve (SlaveJob & job)
         boost::asio::ip::tcp::iostream stream;
         boost::asio::ip::tcp::endpoint remote_ep;
         acceptor.accept(*stream.rdbuf(), remote_ep, error);
+        _utility::log.o << "Slave accepted" << std::endl;
+        _utility::log.flush();
         if (error) return false;
         _utility::StreamWrapper wrapped(_key, stream);
         wrapped.buffer();

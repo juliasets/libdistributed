@@ -22,7 +22,7 @@ all: Master.o Slave.o Client.o utility.o
 
 .PHONY: test
 test: master-test slave-test client-test
-	./master-test | ./slave-test | ./slave-test | ./slave-test | ./client-test | ./client-test | ./client-test
+	./master-test | ./slave-test | ./client-test
 
 master-test: Master-test.cpp Master.o Master.hpp utility.o skein/skein.o
 	$(CC) Master-test.cpp

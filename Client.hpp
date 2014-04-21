@@ -72,6 +72,7 @@ public:
     ClientJob (const Client & client, const ClientJob & clientjob) :
         _key(client._key),
         io_service(), acceptor(io_service),
+        success(clientjob.success),
         _waiter(), _wait(),
         _hostname(clientjob._hostname), _port(clientjob._port)
     {
