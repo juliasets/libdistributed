@@ -93,7 +93,7 @@ void ClientJob::serve ()
     }
     catch (std::exception & e)
     {
-        _utility::log.o << "Exception in Client::serve(): " <<
+        _utility::log.o << "Exception in ClientJob::serve(): " <<
             e.what() << std::endl;
         _utility::log.flush();
     }
@@ -113,6 +113,8 @@ void ClientJob::cancel ()
         boost::asio::ip::tcp::iostream
             stream("127.0.0.1", std::to_string(myport),
                 boost::asio::ip::resolver_query_base::flags(0));
+        _utility::StreamWrapper wrapped(_key, stream);
+        wrapped.flush();
     }
     catch (std::exception &e)
     {}
