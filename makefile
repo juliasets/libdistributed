@@ -18,29 +18,32 @@ LD := $(G) --std=c++11 -Wall -Wextra --pedantic
 LIBS := -lboost_system -pthread
 
 .PHONY: all
-all: Master.o Slave.o Client.o utility.o
+all: libdistributed.a
+
+libdistributed.a: Master.o Slave.o Client.o utility.o skein/skein.o
+	ar rcs libdistributed.a Master.o Slave.o Client.o utility.o skein/*.o
 
 .PHONY: test
 test: master-test slave-test client-test
 	./master-test | ./slave-test | ./slave-test | ./slave-test | ./client-test | ./client-test | ./client-test
 
-master-test: Master-test.cpp Master.o Master.hpp utility.o skein/skein.o
+master-test: Master-test.cpp libdistributed.a
 	$(CC) Master-test.cpp
-	$(LD) -o master-test Master-test.o Master.o utility.o skein/*.o $(LIBS)
+	$(LD) -o master-test Master-test.o -L. -ldistributed $(LIBS)
 
 Master.o: Master.hpp Master.cpp streamwrapper.hpp utility.hpp utility_macros.hpp skein/skein.h
 	$(CC) Master.cpp
 
-slave-test: Slave-test.cpp Slave.o utility.o skein/skein.o
+slave-test: Slave-test.cpp libdistributed.a
 	$(CC) Slave-test.cpp
-	$(LD) -o slave-test Slave-test.o Slave.o utility.o skein/*.o $(LIBS)
+	$(LD) -o slave-test Slave-test.o -L. -ldistributed $(LIBS)
 
 Slave.o: Slave.hpp Slave.cpp streamwrapper.hpp utility.hpp utility_macros.hpp skein/skein.h
 	$(CC) Slave.cpp
 
-client-test: Client-test.cpp Client.o utility.o skein/skein.o
+client-test: Client-test.cpp libdistributed.a
 	$(CC) Client-test.cpp
-	$(LD) -o client-test Client-test.o Client.o utility.o skein/*.o $(LIBS)
+	$(LD) -o client-test Client-test.o -L. -ldistributed $(LIBS)
 
 Client.o: Client.hpp Client.cpp streamwrapper.hpp utility.hpp skein/skein.h
 	$(CC) Client.cpp
@@ -53,6 +56,6 @@ skein/skein.o:
 
 .PHONY: clean
 clean:
-	rm -rf *~ *.gch *.o skein/*~ skein/*.gch skein/*.o
+	rm -rf *~ *.gch *.o skein/*~ skein/*.gch skein/*.o *.a
 	rm -rf *-test
 

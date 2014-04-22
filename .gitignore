@@ -2,6 +2,7 @@
 *~
 *.gch
 *.o
+*.a
 
 test
 *-test
