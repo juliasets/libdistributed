@@ -121,15 +121,18 @@ void Master::serve_forever ()
             {
                 _slave slave;
                 if (!get_slave(slave)) // No available slaves!
+                {
+                    wrapped.flush();
                     continue;
+                }
                 wrapped.o << slave.hostname << ' ' << slave.port << std::endl;
                 wrapped.flush();
             }
         }
         catch (std::exception & e)
         {
-            _utility::log.o << "Exception in serve_forever: " << e.what() <<
-                std::endl;
+            _utility::log.o << "Exception in Master::serve_forever: " <<
+                e.what() << std::endl;
             _utility::log.flush();
             continue;
         }
