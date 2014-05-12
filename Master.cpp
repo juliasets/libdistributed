@@ -46,13 +46,16 @@ bool Master::get_slave (_slave & slave)
         {
             return false;
         }
+        double maxLoad = 1;
         for (const _slave & s : slaves)
-            total += (1. - s.load);
+            maxLoad = std::max(maxLoad, s.load + 0.1);
+        for (const _slave & s : slaves)
+            total += (maxLoad - s.load);
         std::uniform_real_distribution<double> dist(0., total);
         total = dist(rng);
         for (const _slave & s : slaves)
         {
-            total -= (1. - s.load);
+            total -= (maxLoad - s.load);
             if (total < 0.)
             {
                 slave = s;
